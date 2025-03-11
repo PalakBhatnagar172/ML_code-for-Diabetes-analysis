@@ -1,0 +1,68 @@
+import pandas as pd
+import joblib
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+
+# Get dataset path from user
+dataset = pd.read_csv('/content/diabetes_data_upload (1).csv')
+
+# Encode categorical target variable
+dataset['class'] = dataset['class'].map({'Positive': 1, 'Negative': 0})
+
+# Convert categorical features to numerical
+for col in ['Polyuria', 'Polydipsia', 'sudden weight loss', 'weakness', 'Polyphagia', 'visual blurring', 'Itching', 'delayed healing', 'partial paresis']:
+    dataset[col] = dataset[col].map({'Yes': 1, 'No': 0})
+
+# Select only high-variance features
+selected_features = ['Age', 'Polyuria', 'Polydipsia', 'sudden weight loss', 'weakness', 'Polyphagia', 'visual blurring', 'Itching', 'delayed healing', 'partial paresis']
+X = dataset[selected_features]
+y = dataset['class']
+
+# Split dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train SVM RBF model
+svm_model = SVC(kernel='rbf', random_state=42)
+svm_model.fit(X_train_scaled, y_train)
+
+# Save model and scaler
+joblib.dump(svm_model, "svm_rbf_model.pkl")
+joblib.dump(scaler, "scaler.pkl")
+
+
+
+# Function to take user input
+def get_user_input():
+    print("\nEnter the following details:")
+    user_data = {
+        'Age': int(input("Enter Age: ")),
+        'Polyuria': 1 if input("Polyuria (Yes/No): ").strip().lower() == 'yes' else 0,
+        'Polydipsia': 1 if input("Polydipsia (Yes/No): ").strip().lower() == 'yes' else 0,
+        'sudden weight loss': 1 if input("Sudden weight loss (Yes/No): ").strip().lower() == 'yes' else 0,
+        'weakness': 1 if input("Weakness (Yes/No): ").strip().lower() == 'yes' else 0,
+        'Polyphagia': 1 if input("Polyphagia (Yes/No): ").strip().lower() == 'yes' else 0,
+        'visual blurring': 1 if input("Visual blurring (Yes/No): ").strip().lower() == 'yes' else 0,
+        'Itching': 1 if input("Itching (Yes/No): ").strip().lower() == 'yes' else 0,
+        'delayed healing': 1 if input("Delayed healing (Yes/No): ").strip().lower() == 'yes' else 0,
+        'partial paresis': 1 if input("Partial paresis (Yes/No): ").strip().lower() == 'yes' else 0,
+    }
+    return user_data
+
+user_input = get_user_input()
+user_df = pd.DataFrame([user_input], columns=selected_features)
+
+# Scale input
+scaled_input = scaler.transform(user_df)
+
+# Predict
+prediction = svm_model.predict(scaled_input)
+
+# Output
+print("\n===== Diabetes Prediction Result =====")
+print("🔴 **Positive (Risk of Diabetes)**" if prediction[0] == 1 else "🟢 **Negative (No Risk of Diabetes)**")
